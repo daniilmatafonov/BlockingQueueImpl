@@ -2,14 +2,67 @@ package com.queue;
 
 import com.model.SimpleMessage;
 
-import java.util.Collection;
-import java.util.Iterator;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ImplBlockingQueue implements BlockingQueue<SimpleMessage> {
+    final Lock lock = new ReentrantLock();
+    int defaultSize = 5;
+
+    final Condition produce = lock.newCondition();
+    final Condition consume = lock.newCondition();
+
+    final SimpleMessage[] messages = new SimpleMessage[defaultSize];
+    int producerIndex, consumerIndex;
+    int count;
+
     public boolean add(SimpleMessage simpleMessage) {
-        return false;
+        lock.lock();
+        try {
+            while (count == messages.length){
+                try {
+                    produce.await();
+                } catch (InterruptedException e) {
+                    System.out.println(e.getMessage());
+                }
+            }
+
+            messages[producerIndex] = simpleMessage;
+            System.out.println("put - " + simpleMessage.getText());
+            producerIndex++;
+            if (producerIndex == messages.length){
+                producerIndex = 0;
+            }
+            ++count;
+            consume.signal();
+        } finally {
+            lock.unlock();
+        }
+        return true;
+    }
+
+    public SimpleMessage take() throws InterruptedException {
+        lock.lock();
+        try {
+            while (count == 0){
+                consume.await();
+            }
+            SimpleMessage message = messages[consumerIndex];
+            System.out.println("take - " + message.getText());
+            consumerIndex++;
+            if (consumerIndex == messages.length){
+                consumerIndex = 0;
+            }
+            --count;
+            produce.signal();
+            return message;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public boolean offer(SimpleMessage simpleMessage) {
@@ -33,15 +86,11 @@ public class ImplBlockingQueue implements BlockingQueue<SimpleMessage> {
     }
 
     public void put(SimpleMessage simpleMessage) throws InterruptedException {
-
+        add(simpleMessage);
     }
 
     public boolean offer(SimpleMessage simpleMessage, long timeout, TimeUnit unit) throws InterruptedException {
         return false;
-    }
-
-    public SimpleMessage take() throws InterruptedException {
-        return null;
     }
 
     public SimpleMessage poll(long timeout, TimeUnit unit) throws InterruptedException {
@@ -49,38 +98,10 @@ public class ImplBlockingQueue implements BlockingQueue<SimpleMessage> {
     }
 
     public int remainingCapacity() {
-        return 0;
+        return Integer.MAX_VALUE;
     }
 
     public boolean remove(Object o) {
-        return false;
-    }
-
-    public boolean containsAll(Collection<?> c) {
-        return false;
-    }
-
-    public boolean addAll(Collection<? extends SimpleMessage> c) {
-        return false;
-    }
-
-    public boolean removeAll(Collection<?> c) {
-        return false;
-    }
-
-    public boolean retainAll(Collection<?> c) {
-        return false;
-    }
-
-    public void clear() {
-
-    }
-
-    public int size() {
-        return 0;
-    }
-
-    public boolean isEmpty() {
         return false;
     }
 
@@ -106,5 +127,44 @@ public class ImplBlockingQueue implements BlockingQueue<SimpleMessage> {
 
     public int drainTo(Collection<? super SimpleMessage> c, int maxElements) {
         return 0;
+    }
+
+    public boolean containsAll(Collection<?> c) {
+        return false;
+    }
+
+    public boolean addAll(Collection<? extends SimpleMessage> c) {
+        return false;
+    }
+
+    public boolean removeAll(Collection<?> c) {
+        lock.lock();
+        boolean changed = false;
+        try {
+            for (Object e : c) {
+                if (remove(e)) {
+                    changed = true;
+                }
+            }
+            return changed;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public boolean retainAll(Collection<?> c) {
+        return false;
+    }
+
+    public void clear() {
+
+    }
+
+    public int size() {
+        return messages.length;
+    }
+
+    public boolean isEmpty() {
+        return false;
     }
 }

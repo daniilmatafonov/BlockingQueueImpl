@@ -10,6 +10,7 @@
     <properties>
         <junit.api.version>5.6.2</junit.api.version>
         <junit.jupiter.version>5.6.2</junit.jupiter.version>
+        <surefire-plugin>2.22.0</surefire-plugin>
     </properties>
     <dependencies>
         <dependency>
@@ -18,20 +19,34 @@
             <version>${junit.api.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Test engine(s) -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-engine</artifactId>
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- For parameterized tests -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter-params</artifactId>
             <version>${junit.jupiter.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${surefire-plugin}</version>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
